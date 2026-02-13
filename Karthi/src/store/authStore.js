@@ -1,8 +1,10 @@
 import { create } from "zustand"
 
+const savedAuth = localStorage.getItem("auth")
+
 export const useAuthStore = create((set) => ({
-  isAuthenticated: false,
-  user: null,
+  isAuthenticated: !!savedAuth,
+  user: savedAuth ? JSON.parse(savedAuth) : null,
 
   login: (email) =>
     set({
@@ -10,9 +12,11 @@ export const useAuthStore = create((set) => ({
       user: { email },
     }),
 
-  logout: () =>
+  logout: () => {
+    localStorage.removeItem("auth")
     set({
       isAuthenticated: false,
       user: null,
-    }),
+    })
+  },
 }))
