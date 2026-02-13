@@ -1,10 +1,9 @@
-import SignIn from "./pages/SignIn";
-import Dashboard from "./pages/Dashboard";
-import { useAuthStore } from "./store/authStore";
-
+import Login from "./pages/login"
+import Dashboard from "./pages/Dashboard"
+import { useAuthStore } from "./store/authStore"
 
 export default function App() {
-  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
 
-  return user ? <Dashboard /> : <SignIn />;
+  return isAuthenticated ? <Dashboard /> : <Login />
 }
