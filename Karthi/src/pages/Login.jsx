@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useAuthStore } from "@/store/auth"
+import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
