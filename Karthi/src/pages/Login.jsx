@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import { useAuthStore } from "../store/authStore"
 import { Card, CardContent } from "../components/ui/card"
 import { Input } from "../components/ui/input"
@@ -8,119 +9,126 @@ import { Eye, EyeOff, Loader2 } from "lucide-react"
 
 export default function Login() {
   const login = useAuthStore((state) => state.login)
+  const navigate = useNavigate()
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [remember, setRemember] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [remember, setRemember] = useState(false)
 
-  const validateEmail = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  }
+  const validateEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError("")
 
-    if (!email || !password) {
+    const emailValue = email.trim()
+    const passwordValue = password.trim()
+
+    if (!emailValue || !passwordValue) {
       setError("Please enter email and password")
       return
     }
 
-    if (!validateEmail(email)) {
+    if (!validateEmail(emailValue)) {
       setError("Please enter a valid email address")
       return
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters")
-      return
-    }
-
-    setLoading(true)
-
-    // ✅ Fake API delay
-    setTimeout(() => {
-      login(email)
-
-      if (remember) {
-        localStorage.setItem("auth", JSON.stringify({ email }))
-      }
-
-      toast.success("Login successful 🎉")
+    try {
+      setLoading(true)
+      await login({ email: emailValue, password: passwordValue, remember })
+      toast.success("Login successful")
+      navigate("/dashboard", { replace: true })
+    } catch (err) {
+      setError(err?.message || "Invalid email or password")
+    } finally {
       setLoading(false)
-    }, 1200)
+    }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-[400px] rounded-xl shadow-lg">
-        <CardContent className="p-8 space-y-6">
-          <h1 className="text-3xl font-semibold">Sign In</h1>
-
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
-
-          <div className="space-y-4">
-
-            {/* ✅ Email */}
-            <Input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            {/* ✅ Password with Toggle */}
-            <div className="relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 px-4 py-10">
+      <div className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
+        <Card className="border-0 shadow-none">
+          <CardContent className="space-y-6 p-0">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Login</h1>
+              <p className="mt-1 text-sm text-slate-500">Use your signed-in account credentials.</p>
             </div>
 
-            {/* ✅ Remember Me */}
-            <label className="flex items-center space-x-2 text-sm">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-              />
-              <span>Remember me</span>
-            </label>
-
-          </div>
-
-          {/* ✅ Button with Spinner */}
-          <Button
-            className="w-full"
-            onClick={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              "Sign In"
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
             )}
-          </Button>
 
-        </CardContent>
-      </Card>
-    </div>
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700">Email</label>
+                <Input
+                  className="border-slate-300 focus-visible:ring-blue-500"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700">Password</label>
+                <div className="relative">
+                  <Input
+                    className="border-slate-300 pr-10 focus-visible:ring-blue-500"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  className="h-4 w-4 rounded border-slate-300"
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                />
+                <span>Remember me on this device</span>
+              </label>
+            </div>
+
+            <Button
+              className="w-full bg-slate-900 text-white hover:bg-slate-800"
+              onClick={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logging in...
+                </>
+              ) : (
+                "Login"
+              )}
+            </Button>
+
+            <p className="text-center text-sm text-slate-600">
+              New user?{" "}
+              <Link to="/signin" className="font-medium text-blue-600 hover:underline">
+                Go to Sign In
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
   )
 }
