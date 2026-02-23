@@ -46,7 +46,8 @@ export default function App() {
             <AuthGuard>
               <Profile />
             </AuthGuard>
-          }
+            
+          } //changes in the code
         />
 
         <Route

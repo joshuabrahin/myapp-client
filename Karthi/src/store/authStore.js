@@ -1,50 +1,32 @@
 import { create } from "zustand"
 
 const AUTH_KEY = "auth"
-const USERS_KEY = "users"
+const PROFILE_KEY = "user_profiles"
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "")
 
-const defaultUsers = [
-  {
-    email: "admin@mail.com",
-    password: "Admin@123",
-    fullName: "Admin User",
-    age: 30,
-    phone: "9876543210",
-    role: "admin",
-  },
-  {
-    email: "user@mail.com",
-    password: "User@123",
-    fullName: "Regular User",
-    age: 25,
-    phone: "9123456780",
-    role: "user",
-  },
-]
-
-const loadUsers = () => {
+const getErrorMessage = async (response, fallback) => {
   try {
-    const raw = localStorage.getItem(USERS_KEY)
-    if (!raw) {
-      localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers))
-      return defaultUsers
-    }
-
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) {
-      localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers))
-      return defaultUsers
-    }
-
-    return parsed
+    const data = await response.json()
+    return data?.message || fallback
   } catch {
-    localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers))
-    return defaultUsers
+    return fallback
   }
 }
 
-const saveUsers = (users) => {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users))
+const loadProfiles = () => {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY)
+    if (!raw) return {}
+
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === "object" ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+const saveProfiles = (profiles) => {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles))
 }
 
 let storedAuth = null
@@ -65,55 +47,65 @@ export const useAuthStore = create((set) => ({
   isAuthenticated: !!storedAuth?.token,
 
   register: async ({ fullName, age, phone, email, password }) => {
-    await new Promise((res) => setTimeout(res, 400))
-
     const normalizedEmail = email.trim().toLowerCase()
-    const users = loadUsers()
 
-    const exists = users.some((item) => item.email.toLowerCase() === normalizedEmail)
+    const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: normalizedEmail,
+        password: password.trim(),
+      }),
+    })
 
-    if (exists) {
-      throw new Error("User already exists")
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, "Unable to sign in"))
     }
 
-    const newUser = {
-      email: normalizedEmail,
-      password,
-      fullName: fullName.trim(),
+    const profiles = loadProfiles()
+    profiles[normalizedEmail] = {
+      fullName: fullName?.trim() || "",
       age,
-      phone,
-      role: "user",
+      phone: phone?.trim() || "",
     }
-
-    saveUsers([...users, newUser])
+    saveProfiles(profiles)
   },
 
   login: async ({ email, password, remember }) => {
-    await new Promise((res) => setTimeout(res, 500))
-
     const normalizedEmail = email.trim().toLowerCase()
-    const normalizedPassword = password.trim()
 
-    const users = loadUsers()
-    const userByEmail = users.find((item) => item.email.toLowerCase() === normalizedEmail)
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: normalizedEmail,
+        password: password.trim(),
+      }),
+    })
 
-    if (!userByEmail) {
-      throw new Error("Account not found. Please Sign In first.")
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, "Invalid email or password"))
     }
 
-    if (userByEmail.password !== normalizedPassword) {
-      throw new Error("Wrong password. Please try again.")
+    const data = await response.json()
+    const token = data?.accessToken || data?.access_token || null
+
+    if (!token) {
+      throw new Error("Login response did not include an access token")
     }
+
+    const profiles = loadProfiles()
+    const profile = profiles[normalizedEmail] || {}
 
     const authData = {
       user: {
-        fullName: userByEmail.fullName,
-        email: userByEmail.email,
-        age: userByEmail.age,
-        phone: userByEmail.phone,
+        fullName: profile.fullName || data?.user?.email,
+        email: data?.user?.email || normalizedEmail,
+        age: profile.age || null,
+        phone: profile.phone || "",
       },
-      token: "jwt_token_123456",
-      role: userByEmail.role,
+      token,
+      role: "user",
     }
 
     if (remember) {
