@@ -12,7 +12,7 @@ export default function Profile() {
           <h1 className="mt-1 text-3xl font-bold text-slate-900">{user?.fullName || "User Profile"}</h1>
           <p className="mt-2 text-sm text-slate-600">Manage and review your registered details.</p>
         </section>
-
+        
         <section className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-sm text-slate-500">Full Name</p>
